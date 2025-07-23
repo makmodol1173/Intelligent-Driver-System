@@ -52,3 +52,48 @@ class FaceEyeDetector:
   def _euclidean_distance(self, p1, p2):
       """Calculates the Euclidean distance between two points."""
       return np.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2)
+  
+  def calculate_EAR(self, landmarks, eye_indices):
+    if not landmarks or len(landmarks) < max(eye_indices) + 1:
+        return 0.0
+    try:
+        p1 = landmarks[eye_indices[0]]
+        p2 = landmarks[eye_indices[1]]
+        p3 = landmarks[eye_indices[2]]
+        p4 = landmarks[eye_indices[3]]
+        p5 = landmarks[eye_indices[4]]
+        p6 = landmarks[eye_indices[5]]
+        A = self._euclidean_distance(p2, p6)
+        B = self._euclidean_distance(p3, p5)
+        C = self._euclidean_distance(p1, p4)
+        ear = (A + B) / (2.0 * C)
+        return ear
+    except IndexError:
+        return 0.0
+
+def detect_landmarks(self, frame):
+    if not self.initialized:
+        return frame, None
+    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    image.flags.writeable = False
+    results = self.face_mesh.process(image)
+    image.flags.writeable = True
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+    if results.multi_face_landmarks:
+        for face_landmarks in results.multi_face_landmarks:
+            self.mp_drawing.draw_landmarks(
+                image=image,
+                landmark_list=face_landmarks,
+                connections=self.mp_face_mesh.FACEMESH_TESSELATION,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=self.mp_drawing_styles
+                .get_default_face_mesh_tesselation_style())
+            self.mp_drawing.draw_landmarks(
+                image=image,
+                landmark_list=face_landmarks,
+                connections=self.mp_face_mesh.FACEMESH_CONTOURS,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=self.mp_drawing_styles
+                .get_default_face_mesh_contours_style())
+    return image, results
