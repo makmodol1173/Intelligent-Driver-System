@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import joblib
+from sklearn.metrics import mean_squared_error, accuracy_score
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
@@ -64,3 +66,77 @@ class DriverModel:
             print("Clustering model trained.")
         except Exception as e:
             print(f"Error during model training: {e}")
+    def predict_score(self, features):
+        if self.regression_model is None or not self.features_trained_on:
+            print("Regression model not trained or features not set.")
+            return 50.0
+
+        if isinstance(features, dict):
+            features_df = pd.DataFrame([features])
+        else:
+            features_df = features.copy()
+
+        for col in self.features_trained_on:
+            if col not in features_df.columns:
+                features_df[col] = 0.0
+
+        X_pred = features_df[self.features_trained_on]
+        X_pred_scaled = self.scaler.transform(X_pred)
+
+        score = self.regression_model.predict(X_pred_scaled)[0]
+        return np.clip(score, 0, 100)
+
+    def classify_risk(self, features):
+        if self.classification_model is None or not self.features_trained_on:
+            print("Classification model not trained or features not set.")
+            return 1
+
+        if isinstance(features, dict):
+            features_df = pd.DataFrame([features])
+        else:
+            features_df = features.copy()
+
+        for col in self.features_trained_on:
+            if col not in features_df.columns:
+                features_df[col] = 0.0
+
+        X_pred = features_df[self.features_trained_on]
+        X_pred_scaled = self.scaler.transform(X_pred)
+
+        risk = self.classification_model.predict(X_pred_scaled)[0]
+        return int(risk)
+
+    def cluster_drivers(self, data):
+        if self.clustering_model is None or data is None or data.empty:
+            print("Clustering model not trained or no data for clustering.")
+            return np.array([])
+
+        try:
+            X_scaled, _ = self._prepare_features(data)
+            clusters = self.clustering_model.predict(X_scaled)
+            return clusters
+        except Exception as e:
+            print(f"Error during clustering: {e}")
+            return np.array([])
+
+    def save_models(self, path="models"):
+        joblib.dump(self.regression_model, f"{path}/regression_model.pkl")
+        joblib.dump(self.classification_model, f"{path}/classification_model.pkl")
+        joblib.dump(self.clustering_model, f"{path}/clustering_model.pkl")
+        joblib.dump(self.scaler, f"{path}/scaler.pkl")
+        print("Models saved.")
+
+    def load_models(self, path="models"):
+        try:
+            self.regression_model = joblib.load(f"{path}/regression_model.pkl")
+            self.classification_model = joblib.load(f"{path}/classification_model.pkl")
+            self.clustering_model = joblib.load(f"{path}/clustering_model.pkl")
+            self.scaler = joblib.load(f"{path}/scaler.pkl")
+            print("Models loaded.")
+            return True
+        except FileNotFoundError:
+            print("Model files not found. Models need to be trained.")
+            return False
+        except Exception as e:
+            print(f"Error loading models: {e}")
+            return False
