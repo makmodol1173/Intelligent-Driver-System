@@ -71,7 +71,7 @@ class FaceEyeDetector:
     except IndexError:
         return 0.0
 
-def detect_landmarks(self, frame):
+  def detect_landmarks(self, frame):
     if not self.initialized:
         return frame, None
     image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -97,3 +97,38 @@ def detect_landmarks(self, frame):
                 connection_drawing_spec=self.mp_drawing_styles
                 .get_default_face_mesh_contours_style())
     return image, results
+
+  def detect_drowsiness(self, ear):
+    if ear < self.EAR_THRESHOLD:
+        self.COUNTER += 1
+        if self.COUNTER >= self.CONSECUTIVE_FRAMES:
+            self.DROWSY_ALERT = True
+    else:
+        self.COUNTER = 0
+        self.DROWSY_ALERT = False
+    return self.DROWSY_ALERT
+
+  def detect_blink(self, ear):
+    blink_detected = False
+    if self.LAST_EAR > self.EAR_THRESHOLD and ear < self.EAR_THRESHOLD:
+        pass
+    elif self.LAST_EAR < self.EAR_THRESHOLD and ear > self.EAR_THRESHOLD:
+        self.BLINK_COUNTER += 1
+        blink_detected = True
+    self.LAST_EAR = ear
+    return blink_detected
+
+  def process_frame(self, frame):
+    if not self.initialized:
+        return frame, 0.0, False, 0
+    processed_frame, results = self.detect_landmarks(frame)
+    ear = 0.0
+    drowsy_alert = False
+    if results.multi_face_landmarks:
+        for face_landmarks in results.multi_face_landmarks:
+            left_ear = self.calculate_EAR(face_landmarks.landmark, self.LEFT_EYE_EAR_INDICES)
+            right_ear = self.calculate_EAR(face_landmarks.landmark, self.RIGHT_EYE_EAR_INDICES)
+            ear = (left_ear + right_ear) / 2.0
+            drowsy_alert = self.detect_drowsiness(ear)
+            self.detect_blink(ear)
+    return processed_frame, ear, drowsy_alert, self.BLINK_COUNTER
