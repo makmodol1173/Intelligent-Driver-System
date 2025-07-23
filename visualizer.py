@@ -76,3 +76,32 @@ class Visualizer:
           st.success(alert_msg)
       else:
           st.write(alert_msg)
+  def plot_clustering_results(self, data, cluster_labels):
+      if data is None or data.empty or cluster_labels is None or len(cluster_labels) == 0:
+          st.warning("No data or cluster labels for plotting clustering results.")
+          return
+
+      data_with_clusters = data.copy()
+      data_with_clusters['Cluster'] = cluster_labels.astype(str)
+
+      features_to_plot = [col for col in ['speed_avg', 'braking_intensity', 'jerk', 'ear', 'blink_rate']
+                          if col in data_with_clusters.columns]
+
+      if len(features_to_plot) >= 2:
+          fig = px.scatter(data_with_clusters, x=features_to_plot[0], y=features_to_plot[1], color='Cluster',
+                           title='Driver Clusters (Sample Features)', hover_data=data_with_clusters.columns)
+          st.plotly_chart(fig, use_container_width=True)
+      elif len(features_to_plot) == 1:
+          st.write(f"Cannot plot 2D scatter for clustering with only one feature: {features_to_plot[0]}")
+          st.dataframe(data_with_clusters[['Cluster', features_to_plot[0]]].head())
+      else:
+          st.warning("Not enough features to plot clustering results.")
+          st.dataframe(data_with_clusters[['Cluster']].head())
+
+  def plot_feature_distribution(self, data, feature_col, title="Feature Distribution"):
+      if data is None or data.empty or feature_col not in data.columns:
+          st.warning(f"No data or '{feature_col}' column found for distribution plot.")
+          return
+      
+      fig = px.histogram(data, x=feature_col, title=title)
+      st.plotly_chart(fig, use_container_width=True)
