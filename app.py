@@ -3,6 +3,7 @@ import cv2
 import pandas as pd
 import numpy as np
 import time
+import io # Import io for handling binary data
 
 # Import the custom classes
 from data_handler import DataHandler
@@ -28,6 +29,21 @@ class DriverBehaviorApp:
       self.score_history = []
       self.risk_history = []
       self.face_detection_enabled = self.face_eye_detector.initialized # Check if FaceEyeDetector initialized successfully
+
+      # Load audio files once during initialization
+      self.high_risk_audio_bytes = self._load_audio_file("public/sounds/high_risk_alert.mp3")
+
+  def _load_audio_file(self, file_path):
+      """Helper to load audio file into bytes."""
+      try:
+          with open(file_path, "rb") as f:
+              return f.read()
+      except FileNotFoundError:
+          st.error(f"Audio file not found: {file_path}. Please ensure it exists.")
+          return None
+      except Exception as e:
+          st.error(f"Error loading audio file {file_path}: {e}")
+          return None
 
   def _initialize_models(self):
       """Initializes or loads ML models."""
@@ -156,6 +172,8 @@ class DriverBehaviorApp:
           st.subheader("Live Driver Monitoring")
           video_placeholder = st.empty()
           drowsiness_alert_placeholder = st.empty()
+          # Create a placeholder specifically for audio alerts
+          audio_placeholder = st.empty() 
           
           # Display current metrics below the video
           st.markdown("---")
@@ -239,6 +257,10 @@ class DriverBehaviorApp:
       # Loop for real-time processing
       if 'run_camera' not in st.session_state:
           st.session_state.run_camera = False
+      
+      # Initialize drowsiness timer in session state
+      if 'drowsy_start_time' not in st.session_state:
+          st.session_state.drowsy_start_time = None
 
       if st.session_state.run_camera and self.cap and self.face_detection_enabled: # Add check for face_detection_enabled
           while self.cap.isOpened() and st.session_state.run_camera:
@@ -261,9 +283,17 @@ class DriverBehaviorApp:
               current_ear_placeholder.metric(label="Eye Aspect Ratio (EAR)", value=f"{self.ear_history[-1]:.2f}" if self.ear_history else "N/A")
               current_blink_placeholder.metric(label="Blink Count", value=f"{self.blink_rate_history[-1]}" if self.blink_rate_history else "N/A")
 
+              # Drowsiness alert logic with 2-second delay
               if drowsy_alert:
-                  drowsiness_alert_placeholder.error("🚨 Drowsiness Detected! Take a break.")
+                  if st.session_state.drowsy_start_time is None:
+                      st.session_state.drowsy_start_time = time.time()
+                  
+                  if time.time() - st.session_state.drowsy_start_time >= 2:
+                      drowsiness_alert_placeholder.error("🚨 Drowsiness Detected! Take a break.")
+                  else:
+                      drowsiness_alert_placeholder.empty() # Keep it empty until 2 seconds pass
               else:
+                  st.session_state.drowsy_start_time = None # Reset timer if not drowsy
                   drowsiness_alert_placeholder.empty() # Clear alert if not drowsy
 
               # Update historical charts
@@ -281,7 +311,15 @@ class DriverBehaviorApp:
                   self.visualizer.plot_time_series(history_df, 'Safety Score', "Safety Score Over Time")
                   self.visualizer.plot_time_series(history_df, 'Risk Level', "Risk Level Over Time")
 
-              time.sleep(0.05) # Control frame rate
+              # Audio alert logic for continuous playback
+              # Using st.empty() to manage a single audio player and prevent ID conflicts.
+              # The 'loop=True' argument ensures continuous playback.
+              with audio_placeholder:
+                  if current_risk == 2:
+                      if self.high_risk_audio_bytes:
+                          st.audio(self.high_risk_audio_bytes, format='audio/mp3', start_time=0, loop=True, autoplay=True)
+
+              time.sleep(0.1) # Control frame rate
 
           if self.cap:
               self.cap.release()
