@@ -8,6 +8,7 @@ This project designs and develops a modular Driver Behavior Scoring System that 
 *   **Real-time Face & Eye Detection:** Utilize MediaPipe for live webcam feed to detect facial landmarks, calculate Eye Aspect Ratio (EAR), and identify signs of drowsiness.
 *   **Machine Learning Models:** Employ regression, classification, and clustering models (scikit-learn) to predict driver safety scores and classify risk levels.
 *   **Interactive Streamlit App:** A user-friendly web interface displaying live video, real-time scores, drowsiness alerts, and historical trend dashboards.
+*   **Audio Alerts:** Implements distinct audio alerts. A continuous high-risk alert sounds specifically when drowsiness (prolonged eye closure) is detected.
 *   **Object-Oriented Design:** Core functionality implemented using OOP principles for clarity and extensibility.
 
 ## 🛠️ Technologies & Libraries
