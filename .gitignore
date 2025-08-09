@@ -1,0 +1,46 @@
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+
+# Virtual environment folders
+venv/
+env/
+.venv/
+.env/
+
+# Streamlit cache and temp files
+.streamlit/
+.cache/
+**/.streamlit/
+
+# Environment and config files
+*.env
+*.env.*
+config.yaml
+config.yml
+
+# Logs
+*.log
+
+# IDE specific files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook checkpoints (if you use notebooks in your project)
+.ipynb_checkpoints/
+
+# Build and distribution folders
+build/
+dist/
+*.egg-info/
+
+# Backup files
+*.bak
+*.swp
